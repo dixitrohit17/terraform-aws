@@ -4,45 +4,79 @@ trigger:
 variables:
   terraform_version: 1.6.6
   instance_count: 2
-  aws_region: us-east-1
+  aws_region: ap-south-1
 
 stages:
-- stage: Terraform
+- stage: TerraformPlan
+  displayName: "Terraform Plan Stage"
   jobs:
-  - job: TerraformApply
-    displayName: 'Terraform Apply EC2 Instances'
-    pool:
-      name: 'Default'
+    - job: Plan
+      displayName: "Terraform Plan"
+      pool:
+        name: Default  # Your self-hosted agent pool
+      variables:
+        - group: aws-creds  # Contains AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY
+      steps:
+        - checkout: self
 
-    variables:
-      - group: aws-creds  # Replace with your variable group name that includes AWS credentials
+        - script: |
+            echo "Installing Terraform v$(terraform_version)..."
+            wget https://releases.hashicorp.com/terraform/$(terraform_version)/terraform_$(terraform_version)_linux_amd64.zip
+            unzip terraform_$(terraform_version)_linux_amd64.zip
+            sudo mv terraform /usr/local/bin/
+            terraform version
+          displayName: 'Install Terraform CLI'
 
-    steps:
-    - checkout: self
+        - script: terraform init
+          displayName: 'Terraform Init'
 
-    - script: |
-        echo "Installing Terraform v$(terraform_version)..."
-        wget https://releases.hashicorp.com/terraform/$(terraform_version)/terraform_$(terraform_version)_linux_amd64.zip
-        unzip terraform_$(terraform_version)_linux_amd64.zip
-        sudo mv terraform /usr/local/bin/
-        terraform version
-      displayName: 'Install Terraform CLI'
+        - script: terraform validate
+          displayName: 'Terraform Validate'
 
-    - script: |
-        terraform init
-      displayName: 'Terraform Init'
+        - script: terraform plan -var="instance_count=$(instance_count)" -var="region=$(aws_region)" -out=tfplan.out
+          displayName: 'Terraform Plan'
 
-    - script: |
-        terraform validate
-      displayName: 'Terraform Validate'
+        - script: |
+            mkdir -p tf-artifacts
+            cp tfplan.out tf-artifacts/
+          displayName: 'Copy Plan to Artifacts Directory'
 
-    - script: |
-        terraform plan -var="instance_count=$(instance_count)" -var="region=$(aws_region)"
-      displayName: 'Terraform Plan'
+        - publish: tf-artifacts
+          artifact: tfplan
+          displayName: 'Publish Plan Artifact'
 
-    - script: |
-        terraform apply -auto-approve -var="instance_count=$(instance_count)" -var="region=$(aws_region)"
-      displayName: 'Terraform Apply'
-      env:
-        AWS_ACCESS_KEY_ID: $(AWS_ACCESS_KEY_ID)
-        AWS_SECRET_ACCESS_KEY: $(AWS_SECRET_ACCESS_KEY)
+# ─────────────────────────────────────────────
+# STAGE 2: Terraform Apply (uses Environment for Approval)
+# ─────────────────────────────────────────────
+- stage: TerraformApply
+  displayName: "Terraform Apply Stage"
+  dependsOn: TerraformPlan
+  condition: succeeded()
+  jobs:
+    - deployment: ApplyDeployment
+      displayName: "Terraform Apply"
+      environment: 'terraform-apply'
+      strategy:
+        runOnce:
+          deploy:
+            steps:
+              - checkout: self
+
+              - download: current
+                artifact: tfplan
+
+              - script: |
+                  wget https://releases.hashicorp.com/terraform/$(terraform_version)/terraform_$(terraform_version)_linux_amd64.zip
+                  unzip terraform_$(terraform_version)_linux_amd64.zip
+                  sudo mv terraform /usr/local/bin/
+                  terraform version
+                displayName: 'Install Terraform'
+
+              - script: terraform init
+                displayName: 'Terraform Init'
+
+              - script: terraform apply -auto-approve tfplan/tfplan.out
+                displayName: 'Terraform Apply'
+                env:
+                  AWS_ACCESS_KEY_ID: $(AWS_ACCESS_KEY_ID)
+                  AWS_SECRET_ACCESS_KEY: $(AWS_SECRET_ACCESS_KEY)
