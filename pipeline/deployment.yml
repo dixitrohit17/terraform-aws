@@ -1,7 +1,5 @@
 trigger:
-  branches:
-    include:
-      - dev
+  - none
 
 variables:
   terraform_version: 1.6.6
