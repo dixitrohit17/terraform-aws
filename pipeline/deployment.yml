@@ -12,7 +12,7 @@ stages:
   - job: TerraformApply
     displayName: 'Terraform Apply EC2 Instances'
     pool:
-      vmImage: ubuntu-latest
+      name: 'Default'
 
     variables:
       - group: aws-creds  # Replace with your variable group name that includes AWS credentials
