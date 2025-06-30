@@ -64,6 +64,8 @@ stages:
   condition: succeeded()
   jobs:
     - deployment: ApplyDeployment
+      pool:
+        name: Default  # Your self-hosted agent pool
       displayName: "Terraform Apply"
       environment: 'terraform-apply'
       strategy:
