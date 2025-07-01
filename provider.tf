@@ -5,6 +5,11 @@ terraform {
       version = "~> 5.0"
     }
   }
+  backend "s3" {
+    bucket         = "dev-s3-ap-south-1"
+    key            = "dev/terraform.tfstate"
+    region         = "ap-south-1"
+  }
 }
 # Configure the AWS Provider
 provider "aws" {
