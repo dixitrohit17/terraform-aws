@@ -91,6 +91,18 @@ stages:
                   sudo mv terraform /usr/local/bin/
                   terraform version
                 displayName: 'Install Terraform'
+              - script: |
+                  echo "Downloading tfplan.out from Azure Artifacts..."
+                  mkdir -p tf-artifacts
+                  az artifacts universal download \
+                    --organization https://dev.azure.com/dixitrohit/ \
+                    --project "General-Dev" \
+                    --scope project \
+                    --feed aws-terraform \
+                    --name my-first-package \
+                    --version ${{ parameters.ArtifactVersion }} \
+                    --path tf-artifacts
+                displayName: "Download tfplan.out from Azure Artifacts"
 
               - script: terraform init
                 displayName: 'Terraform Init'
@@ -98,8 +110,11 @@ stages:
                   AWS_ACCESS_KEY_ID: $(AWS_ACCESS_KEY_ID)
                   AWS_SECRET_ACCESS_KEY: $(AWS_SECRET_ACCESS_KEY)
 
-              - script: terraform apply -auto-approve tfplan/tfplan.out
-                displayName: 'Terraform Apply'
+              - script: |
+                  ls -l tf-artifacts
+                  terraform apply -auto-approve tf-artifacts/tfplan.out
+                displayName: "Terraform Apply"
                 env:
                   AWS_ACCESS_KEY_ID: $(AWS_ACCESS_KEY_ID)
                   AWS_SECRET_ACCESS_KEY: $(AWS_SECRET_ACCESS_KEY)
+                
