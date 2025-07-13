@@ -55,7 +55,7 @@ stages:
         - script: |
             mkdir -p tf-artifacts
             cp tfplan.out tf-artifacts/
-            az artifacts universal publish --organization https://dev.azure.com/dixitrohit/ --project="General-Dev" --scope project --feed aws-terraform --name my-first-package --version ${{ parameters.ArtifactVersion }} --description "Universal Packages" --path .
+            az artifacts universal publish --organization https://dev.azure.com/dixitrohit/ --project="General-Dev" --scope project --feed aws-terraform-1 --name my-first-package --version ${{ parameters.ArtifactVersion }} --description "Universal Packages" --path .
           displayName: 'Copy Plan to Artifacts Directory'
           env:
             AZURE_DEVOPS_EXT_PAT: $(ARTIFACT-FEED-PAT)
@@ -100,7 +100,7 @@ stages:
                     --organization https://dev.azure.com/dixitrohit/ \
                     --project "General-Dev" \
                     --scope project \
-                    --feed aws-terraform \
+                    --feed aws-terraform-1 \
                     --name my-first-package \
                     --version ${{ parameters.ArtifactVersion }} \
                     --path tf-artifacts
