@@ -18,8 +18,8 @@ stages:
     - job: Plan
       displayName: "Terraform Plan"
       pool:
-        name: Default  # Your self-hosted agent pool
-        #vmImage: 'ubuntu-latest'
+        #name: Default  # Your self-hosted agent pool
+        vmImage: 'ubuntu-latest'
       variables:
         - group: aws-creds  # Contains AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY
 
